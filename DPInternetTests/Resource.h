@@ -20,6 +20,8 @@
 #define CustomProxyAddress      115
 #define CustomUserAgentCheckBox 116
 #define CustomUserAgentString   117
+#define StressTestBtn           118
+#define TotalRequests           119
 #define OverallResults          120
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
