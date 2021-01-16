@@ -53,11 +53,14 @@ DWORD LastError;
 int Idk;
 int TotalRequestsNum = 0;
 
+// TODO: Create An Array For These...
+HWND UserAgentCheckBox;
+HWND ProxyCheckBox;
 HWND InternetRequestButton;
 HWND HTTPSRequestButton;
 HWND StressTestButton;
 
-WSADATA *WinSockData;
+WSADATA WinSockData;
 
 // Function Declarations
 char *RandomString(char *RandomString);
@@ -75,12 +78,27 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
                      int       nCmdShow)
 {
 
+	/* 
+	 * Create this as a way to make sure no other instances are running
+	 */
+	HANDLE hObject = CreateMutexA((LPSECURITY_ATTRIBUTES)0x0, 0, "DPInternetTests_Mutex");
+
+	/* 
+	 * Either it failed to create it (hObject returning 0), or it already exists
+	 */
+	if ((hObject == 0) || (LastError = GetLastError(), LastError == ERROR_ALREADY_EXISTS))
+	{
+		MessageBoxExA(NULL,
+					  "Another instance of InternetTests is running\r\nExit it before starting a new instance",
+					  NULL, MB_ICONERROR, 0);
+		exit(0);
+	}
+
 	if (MessageBoxExA(hWnd, "The developer is not responsible for any damages caused by this program, by clicking \"Yes\" you agree to hold complete responsiblity for your actions", "Agreement", MB_ICONWARNING | MB_YESNO, 0) == 6)
 		DialogBoxParamA(hInst, MAKEINTRESOURCEA(IDD_MAIN), NULL, InternetTest, 0);
-	
 	else
 		// Exit
-		abort();
+		exit(0);
 }
 
 INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
@@ -90,12 +108,12 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	tagRECT Rect2;
 
 	hWnd = hDlg;
+	lpRect = &Rect2;
 
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
 	case WM_INITDIALOG:
-		lpRect = &Rect2;
 
 		// Set Window Title
 		SetWindowTextA(hDlg, Version);
@@ -105,21 +123,11 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		// Output Console Stuff
 		Idk = sprintf(Out, "======================\r\n");
 		Buffer = Out + Idk;
-		Idk = sprintf(Buffer, "Reporting %s\r\n", Version);
-		Buffer = Buffer + Idk;
-
-		// We can Multi-thread
-		#ifdef _MT
-		Idk = sprintf(Buffer, "Multi-Threading Support Enabled\r\n");
-		Buffer = Buffer + Idk;
-		goto Set;
-		#endif
-
-		Idk = sprintf(Buffer, "Multi-Threading Support Disabled\r\n");
+		Idk = sprintf(Buffer, "Reporting multi-threaded %s\r\n", Version);
 		Buffer = Buffer + Idk;
 		
 		// Startup WinSock2
-		if (WSAStartup(0x101, WinSockData) != 0)
+		if (WSAStartup(0x101, &WinSockData) != 0)
 		{
 			Idk = sprintf(Buffer, "\r\nFailed to start WinSock2, error = %d\r\n", WSAGetLastError());
 			Buffer = Buffer + Idk;
@@ -141,11 +149,14 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
                  (Rect2.right + Rect2.left) / 2 - (Rect1.right - Rect1.left) / 2,
                  (Rect2.top + Rect2.bottom) / 2 - (Rect1.bottom - Rect1.top) / 2,0,0,1);
 
+
+		// I know this is probably the worst place to put this but meh
 		InternetRequestButton = GetDlgItem(hDlg, IDD_INTERNET_TEST);
 		HTTPSRequestButton = GetDlgItem(hDlg, IDD_HTTPS_TEST);
-		
-		SetDlgItemInt(hDlg, TotalRequests, TotalRequestsNum, 0);
+		UserAgentCheckBox = GetDlgItem(hDlg, CustomUserAgentCheckBox);
+		ProxyCheckBox = GetDlgItem(hDlg, CustomProxyCheckBox);
 
+		// Begin thread on startup (uncomment this if you want to)
 		//_beginthreadex(NULL, 0, InternetTest, NULL, 0, 0);
 		
 		return (INT_PTR)TRUE;
@@ -172,7 +183,7 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		{
 			UsingProxy = FALSE; /* Reset */
 
-			// Zero-Out Anything That Could Still Be Resident Here
+			// Zero-Out Any Left Over Residue 
 			ZeroMemory(CustomProxy, sizeof(CustomProxy));
 			ZeroMemory(UserAgent, sizeof(UserAgent));
 			ZeroMemory(inputurl, sizeof(inputurl));
@@ -215,10 +226,13 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 				UsingProxy = FALSE;
 			}
 			
+			/* Disable (Almost) Everything */
 			EnableWindow(InternetRequestButton, 0);
-
 			EnableWindow(HTTPSRequestButton, 0);
+			EnableWindow(UserAgentCheckBox, 0);
+			EnableWindow(ProxyCheckBox, 0);
 
+			// Begin Thread
 			_beginthreadex(NULL, 0, HTTPSTest, NULL, 0, 0);
 
 			return 1;
@@ -230,6 +244,9 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		// Exiting
 		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL || LOWORD(wParam) == IDM_EXIT)/* All possible exit routes */
 		{
+			/*
+			 * Yes was clicked
+			 */
 			if (MessageBoxExA(hDlg, "Exit DPInternetTests?", "DPInternetTests", MB_ICONQUESTION | MB_YESNO, 0) == 6)
 			{
 				DestroyWindow(hDlg);
@@ -354,12 +371,15 @@ UINT __stdcall InternetTest(void *)
 	homeurl = "http://www.msftconnecttest.com/redirect";
 
 	// Begin Thread
-	Idk = sprintf(Out, "Calling InternetTest() Thread\r\n");
+	Idk = sprintf(Out, "Beginning InternetTest() Thread\r\n");
 	Buffer = Out + Idk;
 
 	// Output
 	Idk = sprintf(Buffer, "\r\nDoing full GET request\r\n");
 	Buffer = Buffer + Idk;
+
+	// Show thread progress
+	SetDlgItemTextA(hWnd, OverallResults, Out);
 
 	IntOpenHandle = InternetOpenA("DPInternetTests",0,0,0,0);
 
@@ -398,11 +418,11 @@ UINT __stdcall InternetTest(void *)
 			
 			InternetCloseHandle(IntOpenUrl);
 			InternetCloseHandle(IntOpenHandle);
-			
-			SetDlgItemInt(hWnd, TotalRequests, TotalRequestsNum++, 0);
 		
 		}
 	}
+
+	/* This part resets everything and shows results */
 	End:
 
 	SetDlgItemTextA(hWnd, OverallResults, Out);
@@ -411,7 +431,6 @@ UINT __stdcall InternetTest(void *)
 
 	EnableWindow(HTTPSRequestButton, 1); /* Re-enable button */
 
-	
 	return 0xdeadbeef;
 
 }
@@ -428,8 +447,9 @@ UINT __stdcall HTTPSTest(void *)
 	// Zero It Out
 	Out[0] = '\0';
 
-	// Begin Thread
-	Idk = sprintf(Out, "Calling HTTPSTest() Thread\r\n\n");
+	//------------------BEGINNING OF FULL GET REQUEST----------------
+
+	Idk = sprintf(Out, "Beginning HTTPSTest() Thread\r\n\n");
 	Buffer = Out + Idk;
 
 	// Output
@@ -451,8 +471,9 @@ UINT __stdcall HTTPSTest(void *)
 		IntOpenHandle = InternetOpenA(UserAgent,0,0,0,0);
 	}
 
+	SetDlgItemTextA(hWnd, OverallResults, Out);
 
-	if (IntOpenHandle == 0)/* Failed */
+	if (IntOpenHandle == 0)/* Failed (Returned Zero)*/
 	{
 		LastError = GetLastError();
 
@@ -462,7 +483,7 @@ UINT __stdcall HTTPSTest(void *)
 		goto End;
 	}
 
-	else/* Returned Non-Zero */
+	else/* Successful (Returned Non-Zero) */
 	{
 
 		IntOpenUrl = InternetOpenUrlA(IntOpenHandle, inputurl, 0, 0,INTERNET_FLAG_RAW_DATA,0);
@@ -472,7 +493,7 @@ UINT __stdcall HTTPSTest(void *)
 			LastError = GetLastError();
 
 			// Failed To Open The URL
-			Idk = sprintf(Buffer, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError, LastError);
+			Idk = sprintf(Buffer, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError);
 			Buffer = Buffer + Idk;
 
 			InternetCloseHandle(IntOpenHandle);
@@ -480,7 +501,7 @@ UINT __stdcall HTTPSTest(void *)
 			goto End;
 		}
 
-		else/* Returned Non-Zero */
+		else/* Returned Non-Zero (Passed) */
 		{
 			BufLen = 0x4000 - (int)(Buffer + -0x439680);
 			HttpQueryInfoA(IntOpenUrl,
@@ -495,22 +516,36 @@ UINT __stdcall HTTPSTest(void *)
 		}
 	}
 
+	/* 
+	 * Show end of Full HTTPS Request
+	 */
+	Idk = sprintf(Buffer, "End of full HTTPS request\r\n");
+	Buffer = Buffer + Idk;
+
+	SetDlgItemTextA(hWnd, OverallResults, Out);
 
 	//--------------------END OF FULL GET REQUEST--------------------
 
 
 	//----------------BEGINNING OF PARTIAL GET REQUEST---------------
 
-	Idk = sprintf(Buffer, "=================================================================\r\n");
+
+	/* 
+	 * Seperator
+	 */
+	Idk = sprintf(Buffer, "\r\n=================================================================\r\n");
 	Buffer = Buffer + Idk;
 
 	// Partial Content Request
 	sprintf(Request, "Range: bytes=%d-\r\n", 1024);
 
 	// Output
-	Idk = sprintf(Buffer, "Doing partial HTTPS followup request with User-Agent: %s\r\n", UserAgent);
+	Idk = sprintf(Buffer, "\r\nDoing partial HTTPS followup request with User-Agent: %s\r\n", UserAgent);
 	Buffer = Buffer + Idk;
 
+	/* 
+	 * Proxy is set
+	 */
 	if (UsingProxy == TRUE)
 	{
 		Idk = sprintf(Buffer, "Using Proxy Address %s\r\n", CustomProxy);
@@ -520,15 +555,21 @@ UINT __stdcall HTTPSTest(void *)
 		IntOpenHandle = InternetOpenA(UserAgent,INTERNET_OPEN_TYPE_PROXY,CustomProxy,0,0);
 	}
 
+
 	else /* Not Using A Proxy */
 	{
 		// Normal
 		IntOpenHandle = InternetOpenA(UserAgent,0,0,0,0);
 	}
 
+	// Doing this show thread progress so far in Results
+	SetDlgItemTextA(hWnd, OverallResults, Out);
 
 	if (IntOpenHandle == 0)/* Failed */
 	{
+		/* 
+		 * Get error code and store it
+		 */
 		LastError = GetLastError();
 
 		Idk = sprintf(Buffer, "*** InternetOpen() failed!, error = 0x%.8X ( %u )\r\n", LastError, LastError);
@@ -544,18 +585,24 @@ UINT __stdcall HTTPSTest(void *)
 
 		if (IntOpenUrl == 0)/* Failed */
 		{
+		   	/* 
+		 	 * Get error code and store it
+		 	 */	
 			LastError = GetLastError();
 
 			// Failed To Open The URL
 			Idk = sprintf(Buffer, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError, LastError);
 			Buffer = Buffer + Idk;
 
+			/* 
+			 * Close Internet Handle
+			 */
 			InternetCloseHandle(IntOpenHandle);
 
 			goto End;
 		}
 
-		else/* Returned Non-Zero */
+		else/* Returned Non-Zero (Passed) */
 		{
 			BufLen = 0x4000 - (int)(Buffer + -0x439680);
 			HttpQueryInfoA(IntOpenUrl,
@@ -563,12 +610,18 @@ UINT __stdcall HTTPSTest(void *)
 						   (LPVOID)Buffer,
 						   &BufLen, /* don't even ask what the fustercluck this is*/
 						   0);
-			Buffer = Buffer + Idk;
+			Buffer = Buffer + BufLen;
 
 			InternetCloseHandle(IntOpenUrl);
 			InternetCloseHandle(IntOpenHandle);
 		}
 	}
+
+	/* 
+	 * Show end of Partial HTTPS Request
+	 */
+	Idk = sprintf(Buffer, "End of partial HTTPS request\r\n");
+	Buffer = Buffer + Idk;
 
 	End:
 	
@@ -578,6 +631,10 @@ UINT __stdcall HTTPSTest(void *)
 
 	EnableWindow(HTTPSRequestButton, 1); /* Re-enable button */
 	
+	EnableWindow(UserAgentCheckBox, 1);
+
+	EnableWindow(ProxyCheckBox, 1);
+
 	return 0xdeadbeef;
 }
 
@@ -605,14 +662,15 @@ UINT __stdcall StressTest(void *)
 	// Just because
 	InternalAddressChar = inputurl;
 
-
-
 	// Begin Thread
-	Idk = sprintf(Out, "Calling StressTest() Thread\r\n");
+	Idk = sprintf(Out, "Beginning StressTest() Thread\r\n");
 	Buffer = Out + Idk;
 
 	GetDlgItemTextA(hWnd, IDD_HTTPS_URL, inputurl, sizeof(inputurl));
 
+	/*
+	 * If inputurl is empty, no hostname is provided
+	 */
 	if (_stricmp(inputurl, "") == 0)
 	{
 		
@@ -632,6 +690,10 @@ UINT __stdcall StressTest(void *)
 	{
 		hostEntry = gethostbyname(inputurl);
 
+
+		/* 
+		 * Something happened and the server name could not be resolved
+		 */
 		if (hostEntry == NULL)
 		{
 			
@@ -643,6 +705,9 @@ UINT __stdcall StressTest(void *)
 
 		}
 
+		/* 
+		 * Incorrect Address Length
+		 */
 		if (hostEntry->h_length != 4)
 		{
 			Idk = sprintf(Buffer, "\r\n*** Length of internal address ( %s ) is incorrect, expected 4\r\n", hostEntry->h_length);
@@ -658,6 +723,10 @@ UINT __stdcall StressTest(void *)
 			InternalAddressInt[Counter] = *(sp++);
 			InternalAddressInt[Counter] &= 0xff;
 		}
+
+		/* 
+		 * Convert individual digits into a single line
+		 */
 		sprintf(InternalAddressChar, "%d.%d.%d.%d", InternalAddressInt[0], InternalAddressInt[1], InternalAddressInt[2], InternalAddressInt[3]);
 
 	}
@@ -669,13 +738,17 @@ UINT __stdcall StressTest(void *)
 	Idk = sprintf(Buffer, "\r\nDoing Stress Test with User-Agent: %s\r\n", UserAgent);
 	Buffer = Buffer + Idk;
 
-
+	/*
+	 * Proxy is set
+	 */
 	if (UsingProxy == TRUE)
 	{
 		Idk = sprintf(Buffer, "Using Proxy Address %s\r\n", CustomProxy);
 		Buffer = Buffer + Idk;
 	
-		// Open With Proxy
+		/* 
+		 * Open internet handle with set proxy
+		 */
 		IntOpenHandle = InternetOpenA(UserAgent,INTERNET_OPEN_TYPE_PROXY,CustomProxy,0,0);
 	}
 	
@@ -689,6 +762,10 @@ UINT __stdcall StressTest(void *)
 
 	if (IntOpenHandle == 0)/* Failed */
 	{
+
+		/* 
+		 * Get error, store it.
+		 */
 		LastError = GetLastError();
 
 		Idk = sprintf(Buffer, "*** InternetOpen() failed!, error = 0x%.8X ( %u )\r\n", LastError, LastError);
@@ -712,9 +789,13 @@ UINT __stdcall StressTest(void *)
 
 		if (IntConnectA == 0)/* Failed */
 		{
+			
+			/* 
+			 * Get error, store it.
+			 */
 			LastError = GetLastError();
 
-			// Failed To Open The URL
+			/* Display error */
 			Idk = sprintf(Buffer, "*** InternetConnectA ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError, LastError);
 			Buffer = Buffer + Idk;
 
@@ -725,7 +806,9 @@ UINT __stdcall StressTest(void *)
 
 		else/* Returned Non-Zero */
 		{
-
+			/* 
+			 * Create HTTP Request
+			 */
 			OpenHead = HttpOpenRequestA(IntConnectA,
 							 "HEAD",
 							 NULL, // Set To Nothing, NULL won't work
@@ -734,7 +817,9 @@ UINT __stdcall StressTest(void *)
 							 NULL,
 							 INTERNET_FLAG_NO_AUTH,
 							 0);
-
+			/*
+			 * Create HTTP Request
+			 */
 			OpenPost = HttpOpenRequestA(IntConnectA,
 							 "POST",
 						 	 NULL, // Set To Nothing, NULL won't work
@@ -744,6 +829,10 @@ UINT __stdcall StressTest(void *)
 							 INTERNET_FLAG_NO_AUTH,
 							 0);
 
+
+			/* 
+			 * Did we successfully create the requests?
+			 */
 			if (OpenHead && OpenPost != 0)
 			{
 				Idk = sprintf(Buffer, "\r\n*** Stress test is currently running...\r\n");
@@ -768,6 +857,9 @@ UINT __stdcall StressTest(void *)
 				
 			}
 
+			/*
+			 * Failed to create the requests
+			 */
 			else
 			{
 				LastError = GetLastError();
@@ -778,6 +870,7 @@ UINT __stdcall StressTest(void *)
 		}
 	}
 
+	/* This Point Resets Everything */
 	End:
 	
 	EnableWindow(InternetRequestButton, 1);
@@ -792,7 +885,6 @@ UINT __stdcall StressTest(void *)
 	SetDlgItemTextA(hWnd, StressTestBtn, "Start Test");
 
 	SetDlgItemTextA(hWnd, OverallResults, Out);
-
 
 	return 0xdeadbeef;
 }
@@ -825,9 +917,10 @@ UINT __stdcall WinSockStressTest(void *)
 	InternalAddressChar = inputurl;
 
 
-
-	// Begin Thread
-	Idk = sprintf(Out, "Calling WinSockStressTest() Thread\r\n");
+	/* 
+	 * Beginning Thread
+	 */
+	Idk = sprintf(Out, "Beginning WinSockStressTest() Thread\r\n");
 	Buffer = Out + Idk;
 
 
@@ -850,6 +943,10 @@ UINT __stdcall WinSockStressTest(void *)
 	
 	if (!isdigit(*inputurl)) /* first character is not in numerical format, must convert */
 	{
+
+		/* 
+		 * Something happened, and the hostname could not be resolved
+		 */
 		if ( (hostEntry=gethostbyname(inputurl)) == NULL )
 		{
 			
@@ -861,6 +958,9 @@ UINT __stdcall WinSockStressTest(void *)
 
 		}
 
+		/* 
+		 * Incorrect Address Length
+		 */
 		if (hostEntry->h_length != 4)
 		{
 			Idk = sprintf(Buffer, "\r\n*** Length of internal address ( %s ) is incorrect, expected 4\r\n", hostEntry->h_length);
@@ -904,9 +1004,9 @@ UINT __stdcall WinSockStressTest(void *)
     
 	if (s != 0xffffffff)
 	{
-		int j = 0;
-		char GarbageData[512];
-		char *Notused;
+		int j = 0; /* Counter */
+		char GarbageData[512]; /* Garbage Data */
+		char *Notused; /* (NOT USED) Placeholder for Received HTTPS Data */
 
 		if (connect(s, (SOCKADDR*)&clientService, sizeof(clientService)) == 0)
 		{
@@ -917,6 +1017,9 @@ UINT __stdcall WinSockStressTest(void *)
 
 			RandomString(GarbageData);
 
+			/*
+			 * Stress Test (send() garbage data) while StressTestOn is set to True
+			 */
 			do
 			{
 				int sent = sendto(s, GarbageData, sizeof(GarbageData), 0, (SOCKADDR *)&clientService, sizeof(clientService));
@@ -930,6 +1033,10 @@ UINT __stdcall WinSockStressTest(void *)
 				else
 				{
 					j = j + 1;
+
+					/* 
+					 * Failed Attempts Threshold
+					 */
 					if (j >= 30)
 					{
 						StressTestOn = FALSE;
@@ -942,6 +1049,7 @@ UINT __stdcall WinSockStressTest(void *)
 		}
 	}
 
+	/* This Point Resets Everything */
 	End:
 	
 	EnableWindow(InternetRequestButton, 1);
@@ -965,10 +1073,19 @@ char *RandomString(char *RandomString)
 {
 	int index;
 
+	/* 
+	 * Random Garbage Data Array
+	 */
 	char char1[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/,.-+=~`<>:";
+	
+	/* Do It Only Once */
 	for(index = 0; index < 2; index++)
 	{
 		sprintf(RandomString, "%c", char1[rand() % (sizeof char1 - 1)]);
 	}
+	
+	/* 
+	 * Return Generated Garbage Data
+	 */
 	return RandomString;
 }

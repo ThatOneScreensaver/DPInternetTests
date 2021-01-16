@@ -8,7 +8,7 @@
             "name": "Debug DPInternetTests",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/Release/DPInternetTests",
+            "program": "${workspaceRoot}/Release/DPInternetTests.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
