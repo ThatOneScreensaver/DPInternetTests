@@ -21,8 +21,9 @@
 #define CustomUserAgentCheckBox 116
 #define CustomUserAgentString   117
 #define StressTestBtn           118
-#define TotalRequests           119
+#define RequestInput            119
 #define OverallResults          120
+#define TotalRequests           121
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1

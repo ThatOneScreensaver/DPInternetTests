@@ -39,12 +39,13 @@ BOOL UsingCustomPort;
 BOOL UsingProxy;
 BOOL StressTestOn;
 
-const char *Version = "DPInternetTests v1.6";
+const char *Version = "DPInternetTests v1.7.1";
 char CustomPortNum;
 char CustomProxy[256];
 char inputurl[512];
-char UserAgent[256];
 char Out[16384];
+char Request[256];
+char UserAgent[256];
 	
 char *Buffer;
 
@@ -133,8 +134,7 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			Buffer = Buffer + Idk;
 		}
 
-		Set:
-		
+
 		// Set Text
 		SetDlgItemTextA(hDlg, OverallResults, Out);
 
@@ -437,7 +437,6 @@ UINT __stdcall InternetTest(void *)
 
 UINT __stdcall HTTPSTest(void *)
 {
-	char Request[1024];
 	int Idk;
 	DWORD BufLen;
 	HINTERNET IntOpenHandle;
@@ -527,7 +526,7 @@ UINT __stdcall HTTPSTest(void *)
 	//--------------------END OF FULL GET REQUEST--------------------
 
 
-	//----------------BEGINNING OF PARTIAL GET REQUEST---------------
+	//----------------BEGINNING OF CUSTOM GET REQUEST---------------
 
 
 	/* 
@@ -536,11 +535,11 @@ UINT __stdcall HTTPSTest(void *)
 	Idk = sprintf(Buffer, "\r\n=================================================================\r\n");
 	Buffer = Buffer + Idk;
 
-	// Partial Content Request
-	sprintf(Request, "Range: bytes=%d-\r\n", 1024);
+	// Custom Content Request
+	GetDlgItemTextA(hWnd, RequestInput, Request, sizeof(Request));
 
 	// Output
-	Idk = sprintf(Buffer, "\r\nDoing partial HTTPS followup request with User-Agent: %s\r\n", UserAgent);
+	Idk = sprintf(Buffer, "\r\nDoing custom HTTPS request with User-Agent: %s\r\n", UserAgent);
 	Buffer = Buffer + Idk;
 
 	/* 
@@ -608,7 +607,7 @@ UINT __stdcall HTTPSTest(void *)
 			HttpQueryInfoA(IntOpenUrl,
 						   HTTP_QUERY_RAW_HEADERS_CRLF,
 						   (LPVOID)Buffer,
-						   &BufLen, /* don't even ask what the fustercluck this is*/
+						   &BufLen, /* don't even ask what this fustercluck is*/
 						   0);
 			Buffer = Buffer + BufLen;
 
@@ -618,9 +617,9 @@ UINT __stdcall HTTPSTest(void *)
 	}
 
 	/* 
-	 * Show end of Partial HTTPS Request
+	 * Show end of Custom HTTPS Request
 	 */
-	Idk = sprintf(Buffer, "End of partial HTTPS request\r\n");
+	Idk = sprintf(Buffer, "End of custom HTTPS request\r\n");
 	Buffer = Buffer + Idk;
 
 	End:
