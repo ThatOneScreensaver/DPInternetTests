@@ -5,9 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "C:/Dev/Includes-Headers/Microsoft SDKs/Windows/v6.0A/Include", // Win32 API
-                "C:/Dev/Includes-Headers/VC Includes/", // C Runtime Library
-                "${workspaceFolder}/DPInternetTests/Dependencies/" // Additional Dependencies
-            ],
+                "C:/Dev/Includes-Headers/VC Includes/" // C Runtime Library
+                ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",

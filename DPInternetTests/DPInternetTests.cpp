@@ -39,15 +39,16 @@ BOOL UsingCustomPort;
 BOOL UsingProxy;
 BOOL StressTestOn;
 
-const char *Version = "DPInternetTests v1.7.1";
-char CustomPortNum;
-char CustomProxy[256];
-char inputurl[512];
-char Out[16384];
-char Request[256];
-char UserAgent[256];
+const char *Version = "DPInternetTests v1.7.1"; /* Global Program Version */
+char *Buffer; /* Some Buffer */
+char CustomPortNum; /* Custom Port Number */
+char CustomProxy[256]; /* Custom Proxy */
+char GarbageData[512]; /* Randomly Garbage Data */
+char inputurl[512]; /* Input URL */
+char Out[16384]; /* Out(put) */
+char CstmHeader[256]; /* Custom HTTP Header */
+char UserAgent[256]; /* Custom User Agent */
 	
-char *Buffer;
 
 DWORD LastError;
 
@@ -61,6 +62,7 @@ HWND InternetRequestButton;
 HWND HTTPSRequestButton;
 HWND StressTestButton;
 
+
 WSADATA WinSockData;
 
 // Function Declarations
@@ -73,6 +75,9 @@ UINT __stdcall 		WinSockStressTest(void *);
 
 
 
+/* 
+ * Entry Point Function
+ */
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
@@ -80,12 +85,12 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 {
 
 	/* 
-	 * Create this as a way to make sure no other instances are running
+	 * Create this [mutex] as a way to make sure no other instances are running
 	 */
 	HANDLE hObject = CreateMutexA((LPSECURITY_ATTRIBUTES)0x0, 0, "DPInternetTests_Mutex");
 
 	/* 
-	 * Either it failed to create it (hObject returning 0), or it already exists
+	 * Either failed to create it (hObject returning 0) or it already exists
 	 */
 	if ((hObject == 0) || (LastError = GetLastError(), LastError == ERROR_ALREADY_EXISTS))
 	{
@@ -114,6 +119,9 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	UNREFERENCED_PARAMETER(lParam);
 	switch (message)
 	{
+	/* 
+	 * This is the Dialog Initialization Phase
+	 */
 	case WM_INITDIALOG:
 
 		// Set Window Title
@@ -165,10 +173,10 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		// Internet Button
 		if (LOWORD(wParam) == IDD_INTERNET_TEST)
 		{
-			EnableWindow(InternetRequestButton, 0); /* Disable Button To Prevent Potential DDOSing */
-
-			EnableWindow(HTTPSRequestButton, 0); /* Disable Button To Prevent Potential DDOSing */
-
+			/* Disable Buttons */
+			EnableWindow(InternetRequestButton, 0); 
+			EnableWindow(HTTPSRequestButton, 0);
+			
 			UserAgent[0] = '\0';
 			sprintf(UserAgent, Version);
 
@@ -191,23 +199,36 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 			// Get URL and store it
 			GetDlgItemTextA(hDlg, IDD_HTTPS_URL, inputurl, 512);
 
-			if (IsDlgButtonChecked(hDlg, CustomUserAgentCheckBox) == BST_CHECKED) /* Checked Box */
+			/*
+			 * Is the button checked?
+			 */
+			if (IsDlgButtonChecked(hDlg, CustomUserAgentCheckBox) == BST_CHECKED)
 			{
 				// Get UserAgent and store it
 				GetDlgItemTextA(hDlg, CustomUserAgentString, UserAgent, sizeof(UserAgent));
 
-				if (_stricmp(UserAgent, "") == 0) /* Blank/Empty User-Agent */
+				/* 
+				 * Edit box is empty, use default user agent
+				 */
+				if (_stricmp(UserAgent, "") == 0)
 				{
 					sprintf(UserAgent, Version); // Default to regular If no UA is specified
 				}
 			}
 
-			else/* Default to regular UA */
+			/* 
+			 * Use the default user-agent
+			 */
+			else
 			{
 				sprintf(UserAgent, Version);
 			}
 
-			if (IsDlgButtonChecked(hDlg, CustomProxyCheckBox) == BST_CHECKED) /* Checked Box */
+
+			/* 
+			 * Is the button checked?
+			 */
+			if (IsDlgButtonChecked(hDlg, CustomProxyCheckBox) == BST_CHECKED)
 			{
 				// Initial Value, this will remain
 				// true if everything succeeds
@@ -215,12 +236,20 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 				GetDlgItemTextA(hDlg, CustomProxyAddress, CustomProxy, sizeof(CustomProxy));
 
-				if (_stricmp(CustomProxy, "") == 0) /* No Proxy Address was specificed */
+				/* 
+				 * No proxy string was stated
+				 * UsingProxy is set to false
+				 */
+				if (_stricmp(CustomProxy, "") == 0)
 				{
 					UsingProxy = FALSE; /* Empty/No Proxy */
 				}
 			}
 
+			/* 
+			 * Button isn't checked
+			 * Set UsingProxy to false
+			 */
 			else
 			{
 				UsingProxy = FALSE;
@@ -241,22 +270,7 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 
 		//******************************************************************
-		// Exiting
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL || LOWORD(wParam) == IDM_EXIT)/* All possible exit routes */
-		{
-			/*
-			 * Yes was clicked
-			 */
-			if (MessageBoxExA(hDlg, "Exit DPInternetTests?", "DPInternetTests", MB_ICONQUESTION | MB_YESNO, 0) == 6)
-			{
-				DestroyWindow(hDlg);
-			}
-			return (INT_PTR)TRUE;
-		}
-		//******************************************************************
-
-		//******************************************************************
-		// Stress Test Button
+		// Stress Test
 		// if (LOWORD(wParam) == StressTestBtn)
 		// {
 		// 	if (StressTestOn == 0)
@@ -341,12 +355,30 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 		// 	}
 		// }
+		
+		//******************************************************************
+		// Exiting
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL || LOWORD(wParam) == IDM_EXIT)/* All possible exit routes */
+		{
+			/*
+			 * Yes was clicked
+			 */
+			if (MessageBoxExA(hDlg, "Exit DPInternetTests?", "DPInternetTests", MB_ICONQUESTION | MB_YESNO, 0) == 6)
+			{
+
+				/* 
+				 * DestroyWindow just goes to the WM_DESTROY message
+				 */
+				DestroyWindow(hDlg);
+			}
+			return (INT_PTR)TRUE;
+		}
+		//******************************************************************
+
 		break;
 	case WM_DESTROY:
 		WSACleanup();
-		MessageBoxExA(hDlg, "Thank you so much for using my program! <3", "Thank You!", MB_ICONINFORMATION, 0);
-		EndDialog(hDlg, message);
-		return 1;
+		exit(0);
 	}
 	return 0;
 }
@@ -366,8 +398,7 @@ UINT __stdcall InternetTest(void *)
 	
 	Out[0] = '\0';
 
-	// Feel Free To Replace This With Any URL
-	// I'm just using this one bc it's the only one that could come to mind!
+	/* Use This URL */
 	homeurl = "http://www.msftconnecttest.com/redirect";
 
 	// Begin Thread
@@ -381,9 +412,14 @@ UINT __stdcall InternetTest(void *)
 	// Show thread progress
 	SetDlgItemTextA(hWnd, OverallResults, Out);
 
+	/* Open Internet Handle */
 	IntOpenHandle = InternetOpenA("DPInternetTests",0,0,0,0);
 
-	if (IntOpenHandle == 0)/* Failed */
+
+	/* 
+	 * Returned Zero (Failed To Open/Create Internet Handle)
+	 */
+	if (IntOpenHandle == 0)
 	{
 		Idk = sprintf(Buffer, "*** InternetOpen() failed!\r\n");
 		Buffer = Buffer + Idk;
@@ -393,10 +429,17 @@ UINT __stdcall InternetTest(void *)
 
 	else/* Returned Non-Zero */
 	{
+		/* 
+		 * Open URL
+		 */
 		IntOpenUrl = InternetOpenUrlA(IntOpenHandle, homeurl, 0, 0,INTERNET_FLAG_RAW_DATA,0);
 
-		if (IntOpenUrl == 0)/* Failed */
+		/* 
+		 * Returned Zero (Failed To Open URL)
+		 */
+		if (IntOpenUrl == 0)
 		{
+			/* Get error and store it */
 			LastError = GetLastError();
 
 			// Failed To Open The URL
@@ -406,7 +449,10 @@ UINT __stdcall InternetTest(void *)
 			InternetCloseHandle(IntOpenHandle);
 		}
 
-		else/* Returned Non-Zero */
+		/*
+		 * Returned Non-Zero (Succeeded)
+		 */
+		else
 		{
 			BufLen = 0x4000 - (int)(Buffer + -0x439680);
 			HttpQueryInfoA(IntOpenUrl,
@@ -427,14 +473,25 @@ UINT __stdcall InternetTest(void *)
 
 	SetDlgItemTextA(hWnd, OverallResults, Out);
 
-	EnableWindow(InternetRequestButton, 1); /* Re-enable button */
-
-	EnableWindow(HTTPSRequestButton, 1); /* Re-enable button */
+	/* Re-enable buttons */
+	EnableWindow(InternetRequestButton, 1);
+	EnableWindow(HTTPSRequestButton, 1);
 
 	return 0xdeadbeef;
 
 }
 
+// Thread Steps:
+// 
+// 1) Open Internet Handle with User-Agent (either with or without proxy)
+// 2) Open URL using previously created internet handle
+// 3) Get HTTP Query Info and Display it
+// 
+// 4) Open Internet Handle with User-Agent (either with or without proxy)
+// 5) Open URL using previously created internet handle with (custom) http headers 
+// 6) Get HTTP Query Info and Display it
+// 
+// 7) End Thread
 UINT __stdcall HTTPSTest(void *)
 {
 	int Idk;
@@ -472,7 +529,11 @@ UINT __stdcall HTTPSTest(void *)
 
 	SetDlgItemTextA(hWnd, OverallResults, Out);
 
-	if (IntOpenHandle == 0)/* Failed (Returned Zero)*/
+
+	/* 
+	 * Returned Zero (Failed to Open/Create Internet Handle)
+	 */
+	if (IntOpenHandle == 0)
 	{
 		LastError = GetLastError();
 
@@ -487,7 +548,11 @@ UINT __stdcall HTTPSTest(void *)
 
 		IntOpenUrl = InternetOpenUrlA(IntOpenHandle, inputurl, 0, 0,INTERNET_FLAG_RAW_DATA,0);
 
-		if (IntOpenUrl == 0)/* Failed */
+
+		/* 
+		 * Returned Zero (Failed)
+		 */
+		if (IntOpenUrl == 0)
 		{
 			LastError = GetLastError();
 
@@ -500,13 +565,17 @@ UINT __stdcall HTTPSTest(void *)
 			goto End;
 		}
 
-		else/* Returned Non-Zero (Passed) */
+		/* 
+		 * Returned Non-Zero (Succeeded)
+		 */
+		else
 		{
 			BufLen = 0x4000 - (int)(Buffer + -0x439680);
+			
 			HttpQueryInfoA(IntOpenUrl,
-						   HTTP_QUERY_RAW_HEADERS_CRLF,
+						   HTTP_QUERY_RAW_HEADERS_CRLF, /* All headers returned from remote server */
 						   (LPVOID)Buffer,
-						   &BufLen, /* don't even ask what the fustercluck this is*/
+						   &BufLen,
 						   0);
 			Buffer = Buffer + BufLen;
 
@@ -515,11 +584,13 @@ UINT __stdcall HTTPSTest(void *)
 		}
 	}
 
+	
 	/* 
 	 * Show end of Full HTTPS Request
 	 */
 	Idk = sprintf(Buffer, "End of full HTTPS request\r\n");
 	Buffer = Buffer + Idk;
+
 
 	SetDlgItemTextA(hWnd, OverallResults, Out);
 
@@ -536,7 +607,7 @@ UINT __stdcall HTTPSTest(void *)
 	Buffer = Buffer + Idk;
 
 	// Custom Content Request
-	GetDlgItemTextA(hWnd, RequestInput, Request, sizeof(Request));
+	GetDlgItemTextA(hWnd, CustomHeader, CstmHeader, sizeof(CstmHeader));
 
 	// Output
 	Idk = sprintf(Buffer, "\r\nDoing custom HTTPS request with User-Agent: %s\r\n", UserAgent);
@@ -580,7 +651,7 @@ UINT __stdcall HTTPSTest(void *)
 	else/* Returned Non-Zero */
 	{
 
-		IntOpenUrl = InternetOpenUrlA(IntOpenHandle, inputurl, Request, INFINITE, INTERNET_FLAG_RAW_DATA | INTERNET_FLAG_PRAGMA_NOCACHE, 0);
+		IntOpenUrl = InternetOpenUrlA(IntOpenHandle, inputurl, CstmHeader, INFINITE, INTERNET_FLAG_RAW_DATA | INTERNET_FLAG_PRAGMA_NOCACHE, 0);
 
 		if (IntOpenUrl == 0)/* Failed */
 		{
@@ -589,9 +660,26 @@ UINT __stdcall HTTPSTest(void *)
 		 	 */	
 			LastError = GetLastError();
 
-			// Failed To Open The URL
-			Idk = sprintf(Buffer, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError, LastError);
-			Buffer = Buffer + Idk;
+			/* 
+			 * Incorrect HTTP header error codes
+			 */
+			if ((LastError = 12150) || (LastError = 12153))
+			{
+				/* 
+			 	* Display error code in results
+			 	*/
+				Idk = sprintf(Buffer, "*** InternetOpenURL ( %s ) failed, are you using the correct HTTP header?", inputurl);
+				Buffer = Buffer + Idk;
+			}
+
+			/* 
+			 * Something else went wrong
+			 */
+			else
+			{
+				Idk = sprintf(Buffer, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError);
+				Buffer = Buffer + Idk;
+			}
 
 			/* 
 			 * Close Internet Handle
@@ -604,13 +692,14 @@ UINT __stdcall HTTPSTest(void *)
 		else/* Returned Non-Zero (Passed) */
 		{
 			BufLen = 0x4000 - (int)(Buffer + -0x439680);
-			HttpQueryInfoA(IntOpenUrl,
-						   HTTP_QUERY_RAW_HEADERS_CRLF,
-						   (LPVOID)Buffer,
-						   &BufLen, /* don't even ask what this fustercluck is*/
-						   0);
+			HttpQueryInfoA(IntOpenUrl, /* Handle */
+						   HTTP_QUERY_RAW_HEADERS_CRLF, /* Request Info Level */
+						   (LPVOID)Buffer, /* Buffer to store query info to */
+						   &BufLen, /* Length of said buffer */
+						   0); /* Index */
 			Buffer = Buffer + BufLen;
 
+			/* Close Handles */
 			InternetCloseHandle(IntOpenUrl);
 			InternetCloseHandle(IntOpenHandle);
 		}
@@ -624,14 +713,13 @@ UINT __stdcall HTTPSTest(void *)
 
 	End:
 	
+	/* Show results */
 	SetDlgItemTextA(hWnd, OverallResults, Out);
 
-	EnableWindow(InternetRequestButton, 1); /* Re-enable button */
-
-	EnableWindow(HTTPSRequestButton, 1); /* Re-enable button */
-	
+	/* Re-enable everything */
+	EnableWindow(InternetRequestButton, 1);
+	EnableWindow(HTTPSRequestButton, 1);
 	EnableWindow(UserAgentCheckBox, 1);
-
 	EnableWindow(ProxyCheckBox, 1);
 
 	return 0xdeadbeef;
@@ -657,7 +745,6 @@ UINT __stdcall StressTest(void *)
 	// Zero It Out
 	Out[0] = '\0';
 
-
 	// Just because
 	InternalAddressChar = inputurl;
 
@@ -665,6 +752,9 @@ UINT __stdcall StressTest(void *)
 	Idk = sprintf(Out, "Beginning StressTest() Thread\r\n");
 	Buffer = Out + Idk;
 
+	/* 
+	 * Get URL
+	 */
 	GetDlgItemTextA(hWnd, IDD_HTTPS_URL, inputurl, sizeof(inputurl));
 
 	/*
@@ -712,7 +802,9 @@ UINT __stdcall StressTest(void *)
 			Idk = sprintf(Buffer, "\r\n*** Length of internal address ( %s ) is incorrect, expected 4\r\n", hostEntry->h_length);
 			Buffer = Buffer + Idk;
 
-			// Don't Go Any Further
+			/* 
+			 * Go to this point, and don't go any further
+			 */
 			goto End;
 		}
 
@@ -809,24 +901,24 @@ UINT __stdcall StressTest(void *)
 			 * Create HTTP Request
 			 */
 			OpenHead = HttpOpenRequestA(IntConnectA,
-							 "HEAD",
-							 NULL, // Set To Nothing, NULL won't work
-							 "HTTP/1.1",
-							 NULL,
-							 NULL,
-							 INTERNET_FLAG_NO_AUTH,
-							 0);
+							 "HEAD", /* Request Verb */
+							 NULL, /* Object Name */
+							 "HTTP/1.1", /* HTTP Version */
+							 NULL, /* Referrer */
+							 NULL, /* Accept-Types */
+							 INTERNET_FLAG_NO_AUTH, /* Flags */
+							 0); /* Context */
 			/*
 			 * Create HTTP Request
 			 */
 			OpenPost = HttpOpenRequestA(IntConnectA,
-							 "POST",
-						 	 NULL, // Set To Nothing, NULL won't work
-						 	 "HTTP/1.1",
-							 NULL,
-						 	 NULL,
-							 INTERNET_FLAG_NO_AUTH,
-							 0);
+							 "POST", /* Request Verb */
+						 	 NULL, /* Object Name */
+						 	 "HTTP/1.1", /* HTTP Version */
+							 NULL, /* Referrer */
+						 	 NULL, /* Accept-Types */
+							 INTERNET_FLAG_NO_AUTH, /* Flags */
+							 0); /* Context */
 
 
 			/* 
@@ -839,6 +931,10 @@ UINT __stdcall StressTest(void *)
 
 				SetDlgItemTextA(hWnd, OverallResults, Out);
 			
+
+				/* 
+				 * Send requests while set to true
+				 */
 				while(StressTestOn == TRUE)
 				{
 					if (HttpSendRequestA(OpenHead, NULL, NULL, NULL, NULL) && HttpSendRequestA(OpenPost, NULL, NULL, NULL, NULL) == TRUE)
@@ -925,6 +1021,9 @@ UINT __stdcall WinSockStressTest(void *)
 
 	GetDlgItemTextA(hWnd, IDD_HTTPS_URL, inputurl, sizeof(inputurl));
 
+	/* 
+	 * URL is empty
+	 */
 	if (_stricmp(inputurl, "") == 0)
 	{
 		
@@ -940,7 +1039,7 @@ UINT __stdcall WinSockStressTest(void *)
 	// Before we start anything, must make sure that the "subject" server
 	// is in the right format, in this case it has to be in e.g. "127.0.0.1"
 	
-	if (!isdigit(*inputurl)) /* first character is not in numerical format, must convert */
+	if (!isdigit(*inputurl)) /* first character is not a number */
 	{
 
 		/* 
@@ -948,8 +1047,13 @@ UINT __stdcall WinSockStressTest(void *)
 		 */
 		if ( (hostEntry=gethostbyname(inputurl)) == NULL )
 		{
-			
-			Idk = sprintf(Buffer, "\r\n*** Cannot resolve server name ( %s )\r\n", inputurl);
+			/* 
+			 * Get error code, and store it
+			 */
+			LastError = GetLastError();
+
+			/* Show Error */
+			Idk = sprintf(Buffer, "\r\n*** Cannot resolve server name ( %s ), error = 0x%.8x ( %d )\r\n", inputurl, LastError, LastError);
 			Buffer = Buffer + Idk;
 
 			// Don't Go Any Further
@@ -993,10 +1097,10 @@ UINT __stdcall WinSockStressTest(void *)
 	Idk = sprintf(Buffer, "Resolved Address: %s\r\n", InternalAddressChar);
 	Buffer = Buffer + Idk;
 
-	// Use User Agent As Name
+	// Use User Agent As Computer Name
 	hostEntry->h_name = UserAgent;
 
-	Idk = sprintf(Buffer, "\r\nDoing Stress Test with User-Agent: %s\r\n", UserAgent);
+	Idk = sprintf(Buffer, "\r\nDoing Stress Test with Computer Name Set As: %s\r\n", UserAgent);
 	Buffer = Buffer + Idk;
 
 	s = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
@@ -1004,7 +1108,6 @@ UINT __stdcall WinSockStressTest(void *)
 	if (s != 0xffffffff)
 	{
 		int j = 0; /* Counter */
-		char GarbageData[512]; /* Garbage Data */
 		char *Notused; /* (NOT USED) Placeholder for Received HTTPS Data */
 
 		if (connect(s, (SOCKADDR*)&clientService, sizeof(clientService)) == 0)
@@ -1051,8 +1154,10 @@ UINT __stdcall WinSockStressTest(void *)
 	/* This Point Resets Everything */
 	End:
 	
+	/*
+	 * Re-enable Buttons
+	 */
 	EnableWindow(InternetRequestButton, 1);
-
 	EnableWindow(HTTPSRequestButton, 1);
 
 	StressTestOn = FALSE; /* Just to ensure that it stays on FALSE */
@@ -1074,6 +1179,7 @@ char *RandomString(char *RandomString)
 
 	/* 
 	 * Random Garbage Data Array
+	 * Add more characters if want to
 	 */
 	char char1[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/,.-+=~`<>:";
 	
@@ -1088,3 +1194,5 @@ char *RandomString(char *RandomString)
 	 */
 	return RandomString;
 }
+
+/* eof */
