@@ -84,20 +84,20 @@ CAPTION "DPInternetTests"
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 FONT 8, "MS Shell Dlg"
 BEGIN
-//    LTEXT           "Total Requests:", IDC_STATIC, 255, 12, 56, 8
-//    LTEXT           "", TotalRequests, 312, 12, 63, 11
-    AUTOCHECKBOX    "Use Custom User Agent", CustomUserAgentCheckBox, 85, 51, 88, 14
-    AUTOCHECKBOX    "Use Proxy", CustomProxyCheckBox, 85, 69, 88, 14
+//    LTEXT         "Total Requests:", IDC_STATIC, 255, 12, 56, 8
+//    LTEXT         "", TotalRequests, 312, 12, 63, 11
+    LTEXT           "Custom User Agent:", IDC_STATIC, 111, 54, 65, 14
+    LTEXT           "Proxy Address:", IDC_STATIC, 126, 71, 50, 14
     DEFPUSHBUTTON   "HTTPS", IDD_HTTPS_TEST, 22, 34, 50, 14, BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP
     PUSHBUTTON      "Internet", IDD_INTERNET_TEST, 22, 13, 50, 14, BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP
 //    PUSHBUTTON      "Start Test", StressTestBtn, 22, 55, 50, 14, BS_PUSHBUTTON | WS_CHILD | WS_VISIBLE | WS_TABSTOP
-    GROUPBOX         "", 0, 15, 27, 467, 71, 0, WS_EX_LEFT
-    EDITTEXT         IDD_HTTPS_URL, 78, 34, 264, 14, ES_LEFT | ES_AUTOHSCROLL | WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP
-    EDITTEXT         CustomUserAgentString, 177, 51, 140, 14, ES_AUTOHSCROLL
-    EDITTEXT         CustomProxyAddress, 177, 69, 140, 14, ES_AUTOHSCROLL
-    GROUPBOX         "Custom HTTP Header", 0, 322, 56, 155, 36, WS_EX_LEFT
-    EDITTEXT         CustomHeader, 327, 69, 140, 14, ES_AUTOHSCROLL
-    EDITTEXT         OverallResults, 15, 100, 467, 265, ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL
+    GROUPBOX        "", 0, 15, 27, 467, 71, 0, WS_EX_LEFT
+    EDITTEXT        IDD_HTTPS_URL, 78, 34, 264, 14, ES_LEFT | ES_AUTOHSCROLL | WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP
+    EDITTEXT        CustomUserAgentString, 177, 51, 140, 14, ES_AUTOHSCROLL
+    EDITTEXT        CustomProxyAddress, 177, 69, 140, 14, ES_AUTOHSCROLL
+    GROUPBOX        "Custom HTTP Header", 0, 322, 56, 155, 36, WS_EX_LEFT
+    EDITTEXT        CustomHeader, 327, 69, 140, 14, ES_AUTOHSCROLL
+    EDITTEXT        OverallResults, 15, 100, 467, 265, ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | WS_VSCROLL | WS_HSCROLL
 END
 
 

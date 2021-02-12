@@ -1,5 +1,4 @@
 {
-    "discord.enabled": true,
     "files.exclude": {
         "**/.git": false
     },
