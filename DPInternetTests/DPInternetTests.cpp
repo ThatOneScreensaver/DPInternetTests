@@ -297,27 +297,21 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		
 		//******************************************************************
 		// Exiting
-		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL || LOWORD(wParam) == IDM_EXIT)/* All possible exit routes */
+		if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)/* All possible exit routes */
 		{
-			/*
-			 * Yes was clicked
-			 */
+			//
+			// Prompt user if they want to exit
+			//
+
 			if (MessageBoxExA(hDlg, "Exit DPInternetTests?", "DPInternetTests", MB_ICONQUESTION | MB_YESNO, 0) == 6)
 			{
-
-				/* 
-				 * DestroyWindow just goes to the WM_DESTROY message
-				 */
-				DestroyWindow(hDlg);
+				Logger::LogToFile("Exiting...");
+				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
 			}
 			return (INT_PTR)TRUE;
 		}
 		//******************************************************************
-
-		break;
-	case WM_DESTROY:
-		WSACleanup();
-		exit(0);
 	}
 	return 0;
 }
