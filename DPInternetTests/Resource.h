@@ -15,15 +15,16 @@
 #define IDC_DPINTERNETTESTS		109
 #define IDD_INTERNET_TEST       111
 #define IDD_HTTPS_TEST          112
-#define IDD_HTTPS_URL           113
-#define CustomProxyCheckBox     114
-#define CustomProxyAddress      115
-#define CustomUserAgentCheckBox 116
-#define CustomUserAgentString   117
-#define StressTestBtn           118
-#define CustomHeader            119
-#define OverallResults          120
-#define TotalRequests           121
+#define CopyLog                 113
+#define IDD_HTTPS_URL           114
+#define CustomProxyCheckBox     115
+#define CustomProxyAddress      116
+#define CustomUserAgentCheckBox 117
+#define CustomUserAgentString   118
+#define StressTestBtn           119
+#define CustomHeader            120
+#define OverallResults          121
+#define TotalRequests           122
 #define IDC_MYICON				2
 #ifndef IDC_STATIC
 #define IDC_STATIC				-1
