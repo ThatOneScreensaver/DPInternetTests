@@ -28,7 +28,7 @@ SOFTWARE.
 const char *LogFilename = "DPInternetTests_log.txt";
 char *InterOut;
 char LogBox[2048];
-char Out[256];
+char Out[2048];
 FILE *LogFile;
 int CxsWritten; /* Characters written by sprintf */
 SYSTEMTIME LocalTime;
@@ -37,7 +37,7 @@ SYSTEMTIME LocalTime;
 // Putting this here because it already
 // exists in DPInternetTests.cpp
 //
-extern char ToOutputLog[1024];
+extern char ToOutputLog[16384];
 
 
 void
@@ -199,7 +199,6 @@ Return Value:
     //
 
     GetLocalTime(&LocalTime);
-    fseek(LogFile, 0, SEEK_SET);
     fprintf(LogFile,
               "%02d/%02d/%04d @ %02d:%02d:%02d (Local Time) : %s\r\n",
               LocalTime.wMonth,
