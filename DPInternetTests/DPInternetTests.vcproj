@@ -114,6 +114,7 @@
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
+				AssemblerOutput="4"
 				WarningLevel="3"
 				DebugInformationFormat="3"
 			/>
@@ -209,7 +210,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Logger.h"
+				RelativePath=".\Logger.hpp"
 				>
 			</File>
 			<File
@@ -225,7 +226,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\Tests.h"
+				RelativePath=".\Tests.hpp"
 				>
 			</File>
 		</Filter>

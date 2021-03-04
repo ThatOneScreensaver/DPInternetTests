@@ -22,9 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 --*/
 
-#include "Logger.h"
+#include "Logger.hpp"
 #include "Resource.h"
-#include "Tests.h"
+#include "Tests.hpp"
 
 //
 // All of these already exist in the main cpp file
@@ -41,8 +41,8 @@ extern DWORD LastError; /* Error Code */
 extern HWND hWnd;
 extern HWND InternetRequestButton;
 extern HWND HTTPSRequestButton;
-
-
+clock_t begin, end;
+double SplitTime;
 
 UINT __stdcall
 Tests::InternetTest(void *)
@@ -81,8 +81,11 @@ Tests::InternetTest(void *)
 	IntOpenHandle = InternetOpenA(Version,0,0,0,0);
 	if (IntOpenHandle == 0)
 	{
-		Logger::LogToBox(hWnd, "*** InternetOpen() failed!", 0);
-		return 0;
+		LastError = GetLastError();
+
+		sprintf(ToOutputLog, "*** InternetOpenA() failed! Error = %.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenHandle);
+		Logger::LogToBox(hWnd, ToOutputLog, 0);
+		goto Close;
 	}
 
 	//
@@ -96,11 +99,11 @@ Tests::InternetTest(void *)
 		LastError = GetLastError();
 
 		// Failed To Open The URL
-		sprintf(ToOutputLog, "*** InternetOpenURL () failed! Error = %.8X ( %u )\r\n", LastError, LastError);
+		sprintf(ToOutputLog, "*** InternetOpenURL() failed, error = %.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenUrl);
 		Logger::LogToBox(hWnd, ToOutputLog, 0);
 
 		InternetCloseHandle(IntOpenHandle);
-		return 0;
+		goto Close;
 	}
 
 	//
@@ -119,6 +122,9 @@ Tests::InternetTest(void *)
 	//
 
 	Logger::LogToBox(hWnd, ToOutputLog, 0);
+
+	Close:
+
 	InternetCloseHandle(IntOpenUrl);
 	InternetCloseHandle(IntOpenHandle);
 	EnableWindow(InternetRequestButton, 1);
@@ -141,7 +147,6 @@ Tests::HTTPSTest(void *)
 // 7) End Thread
 
 {
-	int Idk;
 	DWORD BufLen;
 	HINTERNET IntOpenHandle;
 	HINTERNET IntOpenUrl;
@@ -188,12 +193,10 @@ Tests::HTTPSTest(void *)
 	EnableWindow(InternetRequestButton, 0);
 	EnableWindow(HTTPSRequestButton, 0);
 
-	//***************************************************************************//
-
-	// Zero It Out
-	ToOutputLog[0] = '\0';
 
 	//------------------BEGINNING OF FULL GET REQUEST----------------
+	
+	begin = clock();
 
 	Logger::LogToBox(hWnd, "Beginning HTTPSTest() Thread", 1);
 
@@ -230,10 +233,9 @@ Tests::HTTPSTest(void *)
 	{
 		LastError = GetLastError();
 
-		sprintf(Buffer, "*** InternetOpen() failed!, error = 0x%.8X ( %u )\r\n", LastError, LastError);
+		sprintf(ToOutputLog, "*** InternetOpenA() failed!, error = 0x%.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenHandle);
+		Logger::LogToBox(hWnd, ToOutputLog, 0);
 
-
-		InternetCloseHandle(IntOpenHandle);
 		goto Close;
 	}
 
@@ -246,19 +248,27 @@ Tests::HTTPSTest(void *)
 	{
 		LastError = GetLastError();
 
-		sprintf(ToOutputLog, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )", inputurl, LastError, LastError);
-		Logger::LogToBox(hWnd, ToOutputLog, 0);			
+		sprintf(ToOutputLog, "*** InternetOpenUrlA() failed!, error = 0x%.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenUrl);
+		Logger::LogToBox(hWnd, ToOutputLog, 0);		
 
 		InternetCloseHandle(IntOpenHandle);
 		goto Close;
 	}
-		
+	
+
 	BufLen = 0x4000 - strlen(ToOutputLog);	
 	HttpQueryInfoA(IntOpenUrl,
 				   HTTP_QUERY_RAW_HEADERS_CRLF, /* All headers returned from remote server */
 				   (LPVOID)ToOutputLog,
 				   &BufLen,
 				   0);
+
+	end = clock();
+	SplitTime = (double)(end - begin) / CLOCKS_PER_SEC;	
+			
+	Logger::LogToBox(hWnd, ToOutputLog, 0);
+
+	sprintf(ToOutputLog, "Took %2.3f seconds to finish HTTPS request", SplitTime);
 	Logger::LogToBox(hWnd, ToOutputLog, 0);
 
 	InternetCloseHandle(IntOpenUrl);
@@ -268,13 +278,14 @@ Tests::HTTPSTest(void *)
 	// End of HTTPS get request
 	//
 
-	Logger::LogToBox(hWnd, "End of full HTTP request", 0);
+	Logger::LogToBox(hWnd, "End of full HTTPS request", 2);
 
 	//--------------------END OF FULL GET REQUEST--------------------
 
 
 	//----------------BEGINNING OF CUSTOM GET REQUEST---------------
 
+	begin = clock();
 
 	Logger::LogToBox(hWnd, "=================================================================", 2);
 	
@@ -312,10 +323,10 @@ Tests::HTTPSTest(void *)
 		 */
 		LastError = GetLastError();
 
-		sprintf(ToOutputLog, "*** InternetOpen() failed!, error = 0x%.8X ( %u )\r\n", LastError, LastError);
+		sprintf(ToOutputLog, "*** InternetOpenA() failed!, error = 0x%.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenHandle);
 		Logger::LogToBox(hWnd, ToOutputLog, 0);
 		
-		return 0;
+		goto Close;
 	}
 
 	
@@ -327,12 +338,14 @@ Tests::HTTPSTest(void *)
 		LastError = GetLastError();
 
 		//
-		// Show error with code and exit thread
+		// Show error code
 		//
-		sprintf(ToOutputLog, "*** InternetOpenURL ( %s ) failed! Error = 0x%.8X ( %u )\r\n", inputurl, LastError, LastError);
+		
+		sprintf(ToOutputLog, "*** InternetOpenUrlA ( %s ) failed!, error = 0x%.8X ( %u ) at %s:%d : %p", inputurl, LastError, LastError, __FILE__, __LINE__, &IntOpenUrl);
 		Logger::LogToBox(hWnd, ToOutputLog, 0);
+
 		InternetCloseHandle(IntOpenHandle);
-		return 0;
+		goto Close;
 	}
 
 		
@@ -342,13 +355,19 @@ Tests::HTTPSTest(void *)
 				   (LPVOID)ToOutputLog, /* Buffer to store query info to */
 				   &BufLen, /* Length of said buffer */
 				   0); /* Index */
+	end = clock();
+	SplitTime = (double)(end - begin) / CLOCKS_PER_SEC;
+
+	Logger::LogToBox(hWnd, ToOutputLog, 0);
+
+	sprintf(ToOutputLog, "Took %2.3f seconds to finish custom HTTPS request", SplitTime);
 	Logger::LogToBox(hWnd, ToOutputLog, 0);
 
 	//
 	// Close handles, and enable buttons
 	//
 
-	Logger::LogToBox(hWnd, "End of custom HTTPS request", 0);
+	Logger::LogToBox(hWnd, "End of custom HTTPS request", 2);
 	InternetCloseHandle(IntOpenUrl);
 	InternetCloseHandle(IntOpenHandle);
 

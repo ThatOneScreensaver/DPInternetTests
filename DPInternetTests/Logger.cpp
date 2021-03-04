@@ -22,13 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 --*/
 
-#include "Logger.h"
+#include "Logger.hpp"
 #include "Resource.h"
 
 const char *LogFilename = "DPInternetTests_log.txt";
 char *InterOut;
-char LogBox[2048];
-char Out[2048];
+char LogBox[16384]; /* Changed this to 16384 bytes for worst case scenario */
+char Out[16384]; /* Changed this to 16384 bytes for worst case scenario */
 FILE *LogFile;
 int CxsWritten; /* Characters written by sprintf */
 SYSTEMTIME LocalTime;

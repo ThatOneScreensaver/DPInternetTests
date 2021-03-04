@@ -26,36 +26,40 @@ SOFTWARE.
 // Multi-threaded Internet Tests
 // By ThatOneScreensaver
 
+//
+// ------------------------------------------------------------------- Includes
+//
 
 #include "stdafx.h"
 #include "DPInternetTests.h"
-#include "Logger.h"
-#include "Tests.h"
-
+#include "Logger.hpp"
+#include "Tests.hpp"
 #include <process.h>
 #include <stdio.h>
+#include <time.h>
 #include <Windows.h>
-
-
 #include <WinInet.h>
 #pragma comment(lib, "Wininet.lib")
-
 #include <WinSock2.h>
 #pragma comment(lib, "Ws2_32.lib")
 
-
 // Disable Unreferenced Variable Warnings
 #pragma warning(disable:4101)
-
 // Disable Deprecated Function Warnings
 #pragma warning(disable:4995)
-
 // Disable Unsecure Function Warnings
 #pragma warning(disable:4996)
 
+//
+// ---------------------------------------------------------------- Definitions
+//
+
 #define MAX_LOADSTRING 100
 
-// Global Variables:
+//
+// ----------------------------------------------------------- Global Variables
+//
+
 HINSTANCE hInst;								// current instance
 HWND hWnd;
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
@@ -74,23 +78,26 @@ char ToOutputLog[16384]; /* Holds data going to output log */
 char CstmHeader[256]; /* Custom HTTP Header */
 char UserAgent[256]; /* Custom User Agent */
 	
+clock_t start, finish; /* start and end used for measuring execution times */
+double InitTime; /* total execution time from clock() */
 
 DWORD LastError;
 
 int Idk;
 int TotalRequestsNum = 0;
 
-// TODO: Create An Array For These...
 HWND UserAgentCheckBox;
 HWND ProxyCheckBox;
 HWND InternetRequestButton;
 HWND HTTPSRequestButton;
 HWND StressTestButton;
 
-
 WSADATA WinSockData;
 
-// Function Declarations
+//
+// ----------------------------------------------------------------- Prototypes
+//
+
 char *RandomString(char *RandomString);
 INT_PTR CALLBACK	InternetTest(HWND, UINT, WPARAM, LPARAM);
 UINT __stdcall 		InternetTest(void *);
@@ -98,11 +105,14 @@ UINT __stdcall		HTTPSTest(void *);
 UINT __stdcall		StressTest(void *);
 UINT __stdcall 		WinSockStressTest(void *);
 
+//
+// ---------------------------------------------------------------- Definitions
+//
 
+//
+// Entry point function
+//
 
-/* 
- * Entry Point Function
- */
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
@@ -126,13 +136,30 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 
 	if (MessageBoxExA(hWnd, "The developer is not responsible for any damages caused by this program, by clicking \"Yes\" you agree to hold complete responsiblity for your actions", "Agreement", MB_ICONWARNING | MB_YESNO, 0) == 6)
+	{
+		Logger::Setup();
 		DialogBoxParamA(hInst, MAKEINTRESOURCEA(IDD_MAIN), NULL, InternetTest, 0);
+	}
 	else
+	{ 
 		// Exit
 		exit(0);
+	}
 }
 
+
 INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+/*++
+Routine Description:
+
+	Handles dialog interface (button being clicked etc).
+
+Arguments:
+
+	hDlg - Window handle in which this handler corresponds to.
+	message - Message that 
+
+--*/
 {
 	tagRECT *lpRect;
 	tagRECT Rect1;
@@ -148,6 +175,7 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 	 * This is the Dialog Initialization Phase
 	 */
 	case WM_INITDIALOG:
+		start = clock();
 
 		// Set Window Title
 		SetWindowTextA(hDlg, Version);
@@ -160,8 +188,10 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		// Startup WinSock2
 		if (WSAStartup(0x101, &WinSockData) != 0)
 		{
-			Idk = sprintf(Buffer, "\r\nFailed to start WinSock2, error = %d\r\n", WSAGetLastError());
-			Buffer = Buffer + Idk;
+			LastError = GetLastError();
+
+			sprintf(ToOutputLog, "Failed to start WinSock2, error = %d", LastError);
+			Logger::LogToBox(hWnd, ToOutputLog, 2);
 		}
 
 
@@ -181,12 +211,27 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 		UserAgentCheckBox = GetDlgItem(hDlg, CustomUserAgentCheckBox);
 		ProxyCheckBox = GetDlgItem(hDlg, CustomProxyCheckBox);
 
+
+		//
+		// Get app initialization time
+		//
+
+		finish = clock();
+		InitTime = (double)(finish - start) / CLOCKS_PER_SEC;
+		sprintf(ToOutputLog, "App initialization took %2.3f seconds", InitTime);
+		Logger::LogToFile(ToOutputLog);
+
+		if (IsDebuggerPresent) {
+			OutputDebugStringA(ToOutputLog);
+		}
+
 		// Begin thread on startup (uncomment this if you want to)
-		//_beginthreadex(NULL, 0, InternetTest, NULL, 0, 0);
-		
+		_beginthreadex(0,0,Tests::InternetTest,0,CREATE_SUSPENDED,0);
+
 		return (INT_PTR)TRUE;
 
 	case WM_COMMAND:
+	
 		//
 		// Copy log button
 		//
@@ -314,9 +359,10 @@ INT_PTR CALLBACK InternetTest(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			if (MessageBoxExA(hDlg, "Exit DPInternetTests?", "DPInternetTests", MB_ICONQUESTION | MB_YESNO, 0) == 6)
 			{
-				Logger::LogToFile("Exiting...");
 				WSACleanup();
+				Logger::LogToFile("Exiting...");
 				EndDialog(hDlg, LOWORD(wParam));
+				return (INT_PTR)TRUE;
 			}
 			return (INT_PTR)TRUE;
 		}
@@ -503,7 +549,7 @@ UINT __stdcall StressTest(void *)
 			OpenHead = HttpOpenRequestA(IntConnectA,
 							 "HEAD", /* Request Verb */
 							 NULL, /* Object Name */
-							 "HTTP/1.1", /* HTTP Version */
+							 "HTTP/2.0", /* HTTP Version */
 							 NULL, /* Referrer */
 							 NULL, /* Accept-Types */
 							 INTERNET_FLAG_NO_AUTH, /* Flags */
@@ -514,7 +560,7 @@ UINT __stdcall StressTest(void *)
 			OpenPost = HttpOpenRequestA(IntConnectA,
 							 "POST", /* Request Verb */
 						 	 NULL, /* Object Name */
-						 	 "HTTP/1.1", /* HTTP Version */
+						 	 "HTTP/2.0", /* HTTP Version */
 							 NULL, /* Referrer */
 						 	 NULL, /* Accept-Types */
 							 INTERNET_FLAG_NO_AUTH, /* Flags */
@@ -724,7 +770,7 @@ UINT __stdcall WinSockStressTest(void *)
 			 */
 			do
 			{
-				int sent = sendto(s, GarbageData, sizeof(GarbageData), 0, (SOCKADDR *)&clientService, sizeof(clientService));
+				int sent = send(s, GarbageData, sizeof(GarbageData), 0);
 				if (sent != SOCKET_ERROR)
 				{
 					TotalRequestsNum = TotalRequestsNum + 1;

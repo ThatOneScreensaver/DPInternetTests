@@ -77,10 +77,10 @@ static void LogToFile(const char *ToFile);
  *      ToLog - String to write
  *      Type - Type of message to display
  *      
- *      3 = Write log to blank page (with spacing)
- *      2 = Write log to existing page (with spacing)
- *      1 = Write log to blank page (without spacing)
- *      0 = Write log to existing page (without spacing)
+ *      3 = Write log to blank page (spaced out from previous string)
+ *      2 = Write log to existing page (spaced out from previous string)
+ *      1 = Write log to blank page (not spaced out)
+ *      0 = Write log to existing page (not spaced out)
  * 
  * NOTE: Do NOT input type 0 or 2 prior to inputting type 1 or 3
  *       Doing so will cause a crash.
