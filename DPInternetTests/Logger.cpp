@@ -244,28 +244,24 @@ Return Value:
 --*/
 
 {
-    if (Type == 3)
+    switch(Type)
     {
-        CxsWritten = sprintf(Out, "\r\n%s\r\n", ToLog);
-        InterOut = Out + CxsWritten;
+        case 3:
+            CxsWritten = sprintf(Out, "\r\n%s\r\n", ToLog);
+            InterOut = Out + CxsWritten;
+            break;
+        case 2:
+            CxsWritten = sprintf(InterOut, "\r\n%s\r\n", ToLog);
+            InterOut = InterOut + CxsWritten;
+            break;
+        case 1:
+            CxsWritten = sprintf(Out, "%s\r\n", ToLog);
+            InterOut = Out + CxsWritten;
+            break;
+        case 0:
+            CxsWritten = sprintf(InterOut, "%s\r\n", ToLog);
+            InterOut = InterOut + CxsWritten;
+            break;
     }
-    if (Type == 2)
-    {
-        CxsWritten = sprintf(InterOut, "\r\n%s\r\n", ToLog);
-        InterOut = InterOut + CxsWritten;
-    }
-
-    if (Type == 1)
-    {
-        CxsWritten = sprintf(Out, "%s\r\n", ToLog);
-        InterOut = Out + CxsWritten;
-    }
-
-    if (Type == 0)
-    {
-        CxsWritten = sprintf(InterOut, "%s\r\n", ToLog);
-        InterOut = InterOut + CxsWritten;
-    }
-    
     SetDlgItemTextA(hDlg, OverallResults, Out);
 }
