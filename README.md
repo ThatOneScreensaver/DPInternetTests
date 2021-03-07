@@ -5,6 +5,8 @@ Public, Mulithreaded Internet Tests.
 
 #### VSCode
 ***Note: The "Release" and "Debug" directories MUST exist in order to compile correctly.***
+***Secondary Note: The Microsoft Visual C++ Compiler MUST be installed to compile this with VSCode.***
+
 Build Steps:
 1. Clone repository and store it in a folder _somewhere_ named "DPInternetTests"
 2. Open the previously created folder in VSCode
