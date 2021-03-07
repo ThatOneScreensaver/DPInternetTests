@@ -1,0 +1,175 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+	
+		//
+		// ------------------------------------------ Resource Compiler Configuration
+		//
+		{
+			"type": "cppbuild",
+			"label": "Compile Resources",
+			"command": "rc.exe",
+			"args": [
+
+				// Compiled resource output
+				"/Fo",
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.res",
+
+				// Input file
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.rc",
+
+				// Preprocessor definitions
+				// "/d",
+				// "_UNICODE",
+				// "/d",
+				// "UNICODE",
+
+			],
+			"options": {
+				"cwd": "${workspaceFolder}\\DPInternetTests"
+			},
+			"group": "build"
+		},
+		
+		//
+		// ------------------------------------------ Debug Build Configuration
+		//
+
+		{
+			"type": "cppbuild",
+			"label": "Compile Debug Build",
+			"command": "cl.exe",
+			"args": [
+				
+				// Defines
+				"/D",
+				"WIN32",
+				"/D",
+				"_DEBUG", // NDEBUG = Not debugging ; _DEBUG = Debugging
+				"/D",
+				"_WINDOWS",
+				"/D",
+				"_CRT_SECURE_NO_WARNINGS",
+				"/D",
+				"_UNICODE",
+				"/D",
+				"UNICODE",
+				
+
+				// Include directories
+				// "/I",
+				// "C:\\Dev\\Includes-Headers\\Win32 Includes-Libs\\Include\\10.0.18362.0\\um",
+				// "/I",
+				// "C:\\Dev\\Includes-Headers\\Win32 Includes-Libs\\Include\\10.0.18362.0\\ucrt",
+				// "/I",
+				// "C:\\Dev\\Includes-Headers\\Win32 Includes-Libs\\Include\\10.0.18362.0\\shared",
+				
+				// Miscellaneous
+				"/GL",
+				"/Gy",
+				"/Gd",
+				"/Ox", // level of code optimization
+				"/Zf", // comment this out to drastically reduce output executable size
+				"/EHsc",
+				"/nologo", // "mute" copyright message
+				"/TP", // compile as C++ code
+				"/GS-",
+				"/MTd", // MT = Multithreaded ; MTd = Multithreaded Debug
+						// MD = Multithreaded DLL ; MDd = Multithreaded Debug DLL
+
+				// Input files (to be compiled)
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.cpp",
+				"${workspaceFolder}\\DPInternetTests\\Logger.cpp",
+				"${workspaceFolder}\\DPInternetTests\\Tests.cpp",
+
+				// Output executable (change this to whatever path you want to)
+				"/Fe:",
+				"${workspaceFolder}\\Debug\\DPInternetTests (Debug).exe",
+				
+				// Linker Options
+				"/link",
+				"comctl32.lib",
+				"user32.lib",
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.res"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}\\DPInternetTests\\Debug"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build",
+			"detail": "Compiles debug builds of DPInternetTests"
+		},
+
+		//
+		// ---------------------------------------- Release Build Configuration
+		//
+
+		{
+			"type": "cppbuild",
+			"label": "Compile Release Build",
+			"command": "cl.exe",
+			"args": [
+				
+				// Defines
+				"/D",
+				"WIN32",
+				"/D",
+				"NDEBUG", // NDEBUG = Not debugging ; _DEBUG = Debugging
+				"/D",
+				"_WINDOWS",
+				"/D",
+				"_CRT_SECURE_NO_WARNINGS",
+				"/D",
+				"_UNICODE",
+				"/D",
+				"UNICODE",
+				
+
+				// Include directories
+				// "/I",
+				// "C:\\Dev\\Includes-Headers\\Microsoft SDKs\\Windows\\v6.0A\\Include",
+				// "/I",
+				// "C:\\Dev\\Includes-Headers\\VC Includes",
+				
+				// Miscellaneous
+				"/GL",
+				"/Gy",
+				"/Gd",
+				"/O2", // level of code optimization
+				"/Zi", // comment this out to drastically reduce output executable size
+				"/EHsc",
+				"/nologo", // "mute" copyright message
+				"/TP", // compile as C++ code
+				"/GS-",
+				"/MT", // MT = Multithreaded ; MTd = Multithreaded Debug
+					   // MD = Multithreaded DLL ; MDd = Multithreaded Debug DLL
+
+				// Input files (to be compiled)
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.cpp",
+				"${workspaceFolder}\\DPInternetTests\\Logger.cpp",
+				"${workspaceFolder}\\DPInternetTests\\Tests.cpp",
+
+				// Output executable (change this to whatever path you want to)
+				"/Fe:",
+				"${workspaceFolder}\\Release\\DPInternetTests.exe",
+				
+				// Linker Options
+				"/link",
+				"comctl32.lib",
+				"user32.lib",
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.res"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}\\DPInternetTests\\Release"
+			},
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"group": "build",
+			"detail": "Compiles release builds of DPInternetTests"
+		}
+
+	]
+}
