@@ -18,17 +18,60 @@
 				// Input file
 				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.rc",
 
-				// Preprocessor definitions
-				// "/d",
-				// "_UNICODE",
-				// "/d",
-				// "UNICODE",
+			],
+			"options": {
+				"cwd": "${workspaceFolder}\\DPInternetTests"
+			},
+			"group": "build",
+			"detail": "Compiles resources from .rc file"
+		},
+
+		//
+		// ---------------------------------------- Manifest Tool Configuration (for Debug Builds)
+		//
+		{
+			"type": "cppbuild",
+			"label": "Embed Manifest (Debug Builds)",
+			"command": "mt.exe",
+			"args": [
+				
+				// Path containing executable to embed manifest to
+				"-outputresource:${workspaceFolder}\\Debug\\DPInternetTests (Debug).exe",
+
+				// Manifest file to embed
+				"-manifest",
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.exe.manifest"
 
 			],
 			"options": {
 				"cwd": "${workspaceFolder}\\DPInternetTests"
 			},
-			"group": "build"
+			"group": "build",
+			"detail": "Embeds manifest into Debug Builds of DPInternetTests"
+		},
+
+		//
+		// ---------------------------------------- Manifest Tool Configuration (for Release Builds)
+		//
+		{
+			"type": "cppbuild",
+			"label": "Embed Manifest (Release Builds)",
+			"command": "mt.exe",
+			"args": [
+
+				// Path containing executable to embed manifest to
+				"-outputresource:${workspaceFolder}\\Release\\DPInternetTests (Release).exe",
+
+				// Manifest file to embed
+				"-manifest",
+				"${workspaceFolder}\\DPInternetTests\\DPInternetTests.exe.manifest"
+
+			],
+			"options": {
+				"cwd": "${workspaceFolder}\\DPInternetTests"
+			},
+			"group": "build",
+			"detail": "Embeds manifest into Release Builds of DPInternetTests"
 		},
 		
 		//
@@ -55,21 +98,13 @@
 				"/D",
 				"UNICODE",
 				
-
-				// Include directories
-				// "/I",
-				// "C:\\Dev\\Includes-Headers\\Win32 Includes-Libs\\Include\\10.0.18362.0\\um",
-				// "/I",
-				// "C:\\Dev\\Includes-Headers\\Win32 Includes-Libs\\Include\\10.0.18362.0\\ucrt",
-				// "/I",
-				// "C:\\Dev\\Includes-Headers\\Win32 Includes-Libs\\Include\\10.0.18362.0\\shared",
-				
 				// Miscellaneous
 				"/GL",
 				"/Gy",
 				"/Gd",
 				"/Ox", // level of code optimization
-				"/Zf", // comment this out to drastically reduce output executable size
+				"/Zf", // faster pdb generation
+				"/Zi", // comment this out to drastically reduce output executable size
 				"/EHsc",
 				"/nologo", // "mute" copyright message
 				"/TP", // compile as C++ code
@@ -138,6 +173,7 @@
 				"/Gy",
 				"/Gd",
 				"/O2", // level of code optimization
+				"/Zf", // faster pdb generation
 				"/Zi", // comment this out to drastically reduce output executable size
 				"/EHsc",
 				"/nologo", // "mute" copyright message
@@ -153,8 +189,8 @@
 
 				// Output executable (change this to whatever path you want to)
 				"/Fe:",
-				"${workspaceFolder}\\Release\\DPInternetTests.exe",
-				
+				"${workspaceFolder}\\Release\\DPInternetTests (Release).exe",
+
 				// Linker Options
 				"/link",
 				"comctl32.lib",
