@@ -5,15 +5,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug DPInternetTests",
+            "name": "Debug DPInternetTests (Debug)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/Release/DPInternetTests.exe",
+            "program": "${workspaceRoot}\\Debug\\DPInternetTests (Debug).exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false
+        },
+        {
+            "name": "Debug DPInternetTests (Release)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}\\Release\\DPInternetTests (Release).exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false
         }
+
     ]
 }
