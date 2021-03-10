@@ -69,7 +69,6 @@ Return Value:
     // Allocate Memory and Open File
     //
 
-    malloc(sizeof(LogFile));
     LogFile = fopen(LogFilename, "a");
     
     if (LogFile == 0)
@@ -79,15 +78,13 @@ Return Value:
         if (LogFile)
             fclose(LogFile);
             
-        free(LogFile);
         return;
     }
     
     fprintf(LogFile, "Starting Log\r\n");
 
-    // Close file and free memory
+    // Close file
     fclose(LogFile);
-    free(LogFile);
 }
 
 void
@@ -176,10 +173,9 @@ Return Value:
 
 {
     //
-    // Allocate Memory and Open File
+    // Open file
     //
 
-    malloc(sizeof(LogFile));
     LogFile = fopen(LogFilename, "a");
 
     if (LogFile == 0)
@@ -189,7 +185,6 @@ Return Value:
         if (LogFile)
             fclose(LogFile);
             
-        free(LogFile);
         return;
     }
 
@@ -210,11 +205,10 @@ Return Value:
               ToFile);
 
     //
-    // Close file and free memory
+    // Close file
     //
     
     fclose(LogFile);
-    free(LogFile);
 }
 
 void
