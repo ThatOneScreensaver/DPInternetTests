@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 --*/
 
-#include "Logger.hpp"
+#include "Debug.hpp"
 #include "Resource.h"
 #include "Tests.hpp"
 
@@ -36,7 +36,7 @@ extern char CstmHeader[256]; /* Custom HTTP Header */
 extern char CustomProxy[256]; /* Custom Proxy */
 extern char ToOutputLog[16384];
 extern char UserAgent[256]; /* Custom User Agent */
-extern const char *Version;
+extern char Version[];
 extern DWORD LastError; /* Error Code */
 extern HWND hWnd;
 extern HWND InternetRequestButton;
@@ -70,6 +70,8 @@ Tests::InternetTest(void *)
 	//
 	// Display Thread Progress
 	//
+
+	begin = clock();
 
 	Logger::LogToBox(hWnd, "Beginning InternetTest() Thread", 1);
 	Logger::LogToBox(hWnd, "Doing full GET request", 2);
@@ -116,11 +118,15 @@ Tests::InternetTest(void *)
 				   (LPVOID)ToOutputLog,
 				   &BufLen, 
 				   0);
+	end = clock();
+	SplitTime = (double)(end - begin) / CLOCKS_PER_SEC;
 	
 	//
 	// Display headers and enable buttons
 	//
 
+	Logger::LogToBox(hWnd, ToOutputLog, 0);
+	sprintf(ToOutputLog, "Took %2.3f seconds to do Internet test", SplitTime);
 	Logger::LogToBox(hWnd, ToOutputLog, 0);
 
 	Close:
@@ -160,6 +166,12 @@ Tests::HTTPSTest(void *)
 
 	// Get URL and store it
 	GetDlgItemTextA(hWnd, IDD_HTTPS_URL, inputurl, 512);
+
+	if (_stricmp(inputurl, "sysinfo") == 0)
+	{
+		Debug::SysInfo(hWnd);
+		return 1;
+	}
 
 	//
 	// Get user agent setting
@@ -204,7 +216,7 @@ Tests::HTTPSTest(void *)
 	// Output
 	//
 	
-	sprintf(ToOutputLog, "Doing HTTPS request with User-Agent \"%s\"", UserAgent);
+	sprintf(ToOutputLog, "Doing HTTPS request with User-Agent -> %s", UserAgent);
 	Logger::LogToBox(hWnd, ToOutputLog, 2);
 
 	//
@@ -213,7 +225,7 @@ Tests::HTTPSTest(void *)
 
 	if (UsingProxy == TRUE)
 	{
-		sprintf(ToOutputLog, "Using Proxy Address \"%s\"", CustomProxy);
+		sprintf(ToOutputLog, "Using Proxy Address -> %s", CustomProxy);
 		Logger::LogToBox(hWnd, ToOutputLog, 0);
 	
 		// Open With Proxy
@@ -233,7 +245,11 @@ Tests::HTTPSTest(void *)
 	{
 		LastError = GetLastError();
 
-		sprintf(ToOutputLog, "*** InternetOpenA() failed!, error = 0x%.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenHandle);
+		#ifdef _DEBUG
+			sprintf(ToOutputLog, "*** InternetOpenA() failed!, error = 0x%.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenHandle);
+		#else
+			sprintf(ToOutputLog, "*** InternetOpenA() failed!, error = 0x%.8X ( %u ) ->", LastError, LastError);
+		#endif
 		Logger::LogToBox(hWnd, ToOutputLog, 0);
 
 		goto Close;
@@ -243,12 +259,19 @@ Tests::HTTPSTest(void *)
 	// Open input URL and determine if opened properly
 	//
 
+	sprintf(ToOutputLog, "Input URL -> %s", inputurl);
+	Logger::LogToBox(hWnd, ToOutputLog, 0);
+
 	IntOpenUrl = InternetOpenUrlA(IntOpenHandle, inputurl, 0, 0,INTERNET_FLAG_RAW_DATA,0);
 	if (IntOpenUrl == 0)
 	{
 		LastError = GetLastError();
-
-		sprintf(ToOutputLog, "*** InternetOpenUrlA() failed!, error = 0x%.8X ( %u ) at %s:%d : %p", LastError, LastError, __FILE__, __LINE__, &IntOpenUrl);
+		
+		#ifdef _DEBUG
+			sprintf(ToOutputLog, "*** InternetOpenUrlA() failed!, error = 0x%.8X ( %u ) -> \"%s\" at %s:%d : %p", LastError, LastError, Tests::TestErrors(LastError), __FILE__, __LINE__, &IntOpenUrl);
+		#else
+			sprintf(ToOutputLog, "*** InternetOpenUrlA( %s ) failed!, error = 0x%.8X ( %u ) -> \"%s\"", inputurl, LastError, LastError, Tests::TestErrors(LastError));
+		#endif
 		Logger::LogToBox(hWnd, ToOutputLog, 0);		
 
 		InternetCloseHandle(IntOpenHandle);
@@ -268,7 +291,7 @@ Tests::HTTPSTest(void *)
 			
 	Logger::LogToBox(hWnd, ToOutputLog, 0);
 
-	sprintf(ToOutputLog, "Took %2.3f seconds to finish HTTPS request", SplitTime);
+	sprintf(ToOutputLog, "Took %2.3f seconds to finish full HTTPS request", SplitTime);
 	Logger::LogToBox(hWnd, ToOutputLog, 0);
 
 	InternetCloseHandle(IntOpenUrl);
@@ -285,16 +308,18 @@ Tests::HTTPSTest(void *)
 
 	//----------------BEGINNING OF CUSTOM GET REQUEST---------------
 
-	begin = clock();
-
-	Logger::LogToBox(hWnd, "=================================================================", 2);
-	
-
 	// Custom Content Request
 	GetDlgItemTextA(hWnd, CustomHeader, CstmHeader, sizeof(CstmHeader));
 
+	if (strlen(CstmHeader) == 0)
+		goto Close;
+
+	begin = clock();
+
+	Logger::LogToBox(hWnd, "=================================================================", 2);
+
 	// Output
-	sprintf(ToOutputLog, "Doing custom HTTPS request with User-Agent \"%s\"", UserAgent);
+	sprintf(ToOutputLog, "Doing custom HTTPS request with User-Agent -> %s", UserAgent);
 	Logger::LogToBox(hWnd, ToOutputLog, 2);
 
 	/* 
@@ -302,7 +327,7 @@ Tests::HTTPSTest(void *)
 	 */
 	if (UsingProxy == TRUE)
 	{
-		sprintf(ToOutputLog, "Using Proxy Address \"%s\"", CustomProxy);
+		sprintf(ToOutputLog, "Using Proxy Address -> %s", CustomProxy);
 		Logger::LogToBox(hWnd, ToOutputLog, 0);
 	
 		// Open With Proxy
@@ -329,6 +354,10 @@ Tests::HTTPSTest(void *)
 		goto Close;
 	}
 
+	sprintf(ToOutputLog, "Input URL -> %s", inputurl);
+	Logger::LogToBox(hWnd, ToOutputLog, 0);
+	sprintf(ToOutputLog, "Custom Header -> \"%s\"", CstmHeader);
+	Logger::LogToBox(hWnd, ToOutputLog, 0);
 	
 	IntOpenUrl = InternetOpenUrlA(IntOpenHandle, inputurl, CstmHeader, INFINITE, INTERNET_FLAG_RAW_DATA | INTERNET_FLAG_PRAGMA_NOCACHE, 0);
 
